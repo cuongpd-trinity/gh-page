@@ -150,7 +150,7 @@
       <label for="password">Password</label>
       <input type="password" id="password" autocomplete="current-password" required>
       <button type="submit">Sign in</button>
-      <div class="login-error" id="loginError">Invalid username or password</div>
+      <div class="login-error" id="loginError">Invalid credentials — cannot decrypt reports</div>
     </form>
   </div>
 </div>
@@ -266,9 +266,11 @@
 
   document.getElementById('loginForm').addEventListener('submit', async function(e) {
     e.preventDefault();
+    var u = document.getElementById('username').value.trim();
     var p = document.getElementById('password').value;
+    var secret = u + ':' + p;
     document.querySelector('.login-box button').textContent = 'Verifying…';
-    var ok = await tryLogin(p);
+    var ok = await tryLogin(secret);
     document.querySelector('.login-box button').textContent = 'Sign in';
     if (ok) {
       document.getElementById('loginError').style.display = 'none';
