@@ -19,7 +19,6 @@
     min-height:100vh;
   }
 
-  /* ── Login Screen ── */
   .login-overlay{
     position:fixed;inset:0;z-index:1000;
     background:var(--paper);
@@ -52,7 +51,6 @@
   .login-box button:hover{opacity:.88}
   .login-error{color:var(--danger);font-size:13px;margin-top:12px;display:none}
 
-  /* ── Main App ── */
   .app{display:none}
   .app.visible{display:block}
   .wrap{max-width:760px;margin:0 auto;padding:48px 24px 90px}
@@ -69,7 +67,6 @@
     font-size:clamp(30px,5vw,44px);line-height:1.1;letter-spacing:-.015em}
   h1 em{font-style:italic;color:var(--accent)}
 
-  /* ── Search ── */
   .search-wrap{margin-top:24px;position:relative}
   .search-wrap input{
     width:100%;padding:12px 16px 12px 42px;border:1px solid var(--line);
@@ -83,13 +80,13 @@
 
   .rule{height:2px;background:var(--ink);margin:20px 0 6px;opacity:.85}
 
-  /* ── Report List ── */
   .list{margin-top:16px;border-top:1px solid var(--line)}
   .entry{
     display:flex;align-items:baseline;gap:22px;
     padding:22px 12px;border-bottom:1px solid var(--line);
     text-decoration:none;color:inherit;position:relative;
     transition:background .18s ease,padding-left .18s ease;
+    cursor:pointer;
   }
   .entry:hover{background:var(--card);padding-left:22px}
   .entry .body{flex:1}
@@ -104,7 +101,6 @@
     margin-left:10px;vertical-align:middle;
   }
 
-  /* ── Pagination ── */
   .pager{display:flex;justify-content:center;align-items:center;gap:8px;margin-top:32px}
   .pager button{
     min-width:36px;height:36px;border:1px solid var(--line);
@@ -117,6 +113,25 @@
 
   .empty-msg{text-align:center;color:var(--mut);padding:48px 0;font-size:15px}
 
+  .viewer-overlay{
+    position:fixed;inset:0;z-index:2000;background:var(--paper);display:none;
+    flex-direction:column;
+  }
+  .viewer-overlay.open{display:flex}
+  .viewer-bar{
+    display:flex;align-items:center;gap:12px;padding:12px 24px;
+    border-bottom:1px solid var(--line);background:var(--card);flex-shrink:0;
+  }
+  .viewer-bar .back-btn{
+    background:none;border:1px solid var(--line);border-radius:6px;
+    padding:6px 14px;font-size:13px;color:var(--accent);cursor:pointer;
+    font-weight:600;
+  }
+  .viewer-bar .back-btn:hover{background:var(--paper)}
+  .viewer-bar .viewer-title{font-family:Georgia,serif;font-size:16px;flex:1}
+  .viewer-frame{flex:1;border:none;width:100%}
+  .viewer-loading{text-align:center;padding:48px;color:var(--mut);font-size:15px}
+
   @media(max-width:500px){
     .login-box{padding:36px 24px}
     .wrap{padding:32px 16px 60px}
@@ -125,7 +140,6 @@
 </head>
 <body>
 
-<!-- ════════════ LOGIN ════════════ -->
 <div class="login-overlay" id="loginOverlay">
   <div class="login-box">
     <div class="logo">APA · Reports</div>
@@ -141,7 +155,6 @@
   </div>
 </div>
 
-<!-- ════════════ APP ════════════ -->
 <div class="app" id="app">
   <div class="wrap">
     <div class="top-bar">
@@ -162,25 +175,79 @@
   </div>
 </div>
 
+<div class="viewer-overlay" id="viewer">
+  <div class="viewer-bar">
+    <button class="back-btn" id="viewerBack">&larr; Back</button>
+    <span class="viewer-title" id="viewerTitle"></span>
+  </div>
+  <iframe class="viewer-frame" id="viewerFrame" sandbox="allow-same-origin allow-popups"></iframe>
+</div>
+
 <script>
 (function(){
-  var CREDENTIALS_HASH = 'a9e355b217a8b6dd04c5696c6695008ef8cc6bc0ffd159919c5b198688709a2f';
-  var SESSION_KEY = 'apa_session';
+  var SALT = 'apa-reports-salt-2026';
+  var STORAGE_KEY = 'apa_enc_key';
   var PER_PAGE = 10;
 
+  var derivedKey = null;
+  var rawPassword = null;
   var reports = [];
   var filtered = [];
   var currentPage = 1;
 
-  async function sha256(str) {
-    var buf = await crypto.subtle.digest('SHA-256',
-      new TextEncoder().encode(str));
-    return Array.from(new Uint8Array(buf))
-      .map(function(b){ return b.toString(16).padStart(2,'0'); }).join('');
+  function b64ToBytes(b64) {
+    var bin = atob(b64);
+    var arr = new Uint8Array(bin.length);
+    for (var i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
+    return arr;
   }
 
-  function isLoggedIn() {
-    return sessionStorage.getItem(SESSION_KEY) === CREDENTIALS_HASH;
+  function bytesToB64(bytes) {
+    var bin = '';
+    for (var i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
+    return btoa(bin);
+  }
+
+  async function deriveKey(password) {
+    var enc = new TextEncoder();
+    var keyMaterial = await crypto.subtle.importKey(
+      'raw', enc.encode(password), 'PBKDF2', false, ['deriveKey']
+    );
+    return crypto.subtle.deriveKey(
+      { name: 'PBKDF2', salt: enc.encode(SALT), iterations: 100000, hash: 'SHA-256' },
+      keyMaterial,
+      { name: 'AES-GCM', length: 256 },
+      false,
+      ['decrypt']
+    );
+  }
+
+  async function decryptData(encB64, key) {
+    var raw = b64ToBytes(encB64);
+    var iv = raw.slice(0, 12);
+    var ciphertext = raw.slice(12);
+    var decrypted = await crypto.subtle.decrypt(
+      { name: 'AES-GCM', iv: iv },
+      key,
+      ciphertext
+    );
+    return new TextDecoder().decode(decrypted);
+  }
+
+  async function tryLogin(password) {
+    var key = await deriveKey(password);
+    try {
+      var resp = await fetch('reports.json.enc?_=' + Date.now());
+      var encB64 = await resp.text();
+      var json = await decryptData(encB64, key);
+      JSON.parse(json);
+      derivedKey = key;
+      rawPassword = password;
+      localStorage.setItem(STORAGE_KEY, password);
+      return true;
+    } catch (e) {
+      return false;
+    }
   }
 
   function showApp() {
@@ -191,16 +258,19 @@
   function showLogin() {
     document.getElementById('loginOverlay').classList.remove('hidden');
     document.getElementById('app').classList.remove('visible');
-    sessionStorage.removeItem(SESSION_KEY);
+    document.getElementById('viewer').classList.remove('open');
+    derivedKey = null;
+    rawPassword = null;
+    localStorage.removeItem(STORAGE_KEY);
   }
 
   document.getElementById('loginForm').addEventListener('submit', async function(e) {
     e.preventDefault();
-    var u = document.getElementById('username').value.trim();
     var p = document.getElementById('password').value;
-    var hash = await sha256(u + ':' + p);
-    if (hash === CREDENTIALS_HASH) {
-      sessionStorage.setItem(SESSION_KEY, hash);
+    document.querySelector('.login-box button').textContent = 'Verifying…';
+    var ok = await tryLogin(p);
+    document.querySelector('.login-box button').textContent = 'Sign in';
+    if (ok) {
       document.getElementById('loginError').style.display = 'none';
       showApp();
       loadReports();
@@ -209,19 +279,19 @@
     }
   });
 
-  document.getElementById('logoutBtn').addEventListener('click', function() {
-    showLogin();
-  });
+  document.getElementById('logoutBtn').addEventListener('click', showLogin);
 
   async function loadReports() {
     try {
-      var resp = await fetch('reports.json?_=' + Date.now());
-      reports = await resp.json();
+      var resp = await fetch('reports.json.enc?_=' + Date.now());
+      var encB64 = await resp.text();
+      var json = await decryptData(encB64, derivedKey);
+      reports = JSON.parse(json);
       reports.sort(function(a, b) { return b.file.localeCompare(a.file); });
       applyFilter();
     } catch (e) {
       document.getElementById('reportList').innerHTML =
-        '<div class="empty-msg">Could not load reports. Make sure <code>reports.json</code> exists.</div>';
+        '<div class="empty-msg">Could not decrypt reports. Try signing out and back in.</div>';
     }
   }
 
@@ -240,8 +310,8 @@
                r.file.toLowerCase().indexOf(q) !== -1;
       });
     }
-    var countEl = document.getElementById('searchCount');
-    countEl.textContent = filtered.length + ' report' + (filtered.length !== 1 ? 's' : '') +
+    document.getElementById('searchCount').textContent =
+      filtered.length + ' report' + (filtered.length !== 1 ? 's' : '') +
       (q ? ' matching "' + q + '"' : ' total');
     renderPage();
   }
@@ -258,19 +328,48 @@
     } else {
       list.innerHTML = page.map(function(r, i) {
         var isLatest = (start + i === 0) && currentPage === 1 &&
-          document.getElementById('searchInput').value.trim() === '';
-        return '<a class="entry' + (isLatest ? ' latest' : '') + '" href="reports/' + r.file + '">' +
+          !document.getElementById('searchInput').value.trim();
+        return '<div class="entry' + (isLatest ? ' latest' : '') + '" data-file="' +
+          escAttr(r.file) + '" data-title="' + escAttr(r.title) + '">' +
           '<span class="body">' +
             '<span class="date">' + escHtml(r.date || r.file.replace('.html','')) + '</span>' +
             '<div class="title">' + escHtml(r.title) + '</div>' +
           '</span>' +
           '<span class="go">&rarr;</span>' +
-        '</a>';
+        '</div>';
       }).join('');
-    }
 
+      list.querySelectorAll('.entry').forEach(function(el) {
+        el.addEventListener('click', function() {
+          openReport(this.getAttribute('data-file'), this.getAttribute('data-title'));
+        });
+      });
+    }
     renderPager(totalPages);
   }
+
+  async function openReport(file, title) {
+    var viewer = document.getElementById('viewer');
+    var frame = document.getElementById('viewerFrame');
+    document.getElementById('viewerTitle').textContent = title;
+    viewer.classList.add('open');
+    frame.srcdoc = '<p style="text-align:center;padding:48px;color:#76726a;font-family:system-ui">Decrypting…</p>';
+
+    try {
+      var encFile = file.replace('.html', '.html.enc');
+      var resp = await fetch('reports/' + encFile + '?_=' + Date.now());
+      var encB64 = await resp.text();
+      var html = await decryptData(encB64, derivedKey);
+      frame.srcdoc = html;
+    } catch (e) {
+      frame.srcdoc = '<p style="text-align:center;padding:48px;color:#c0392b;font-family:system-ui">Failed to decrypt report.</p>';
+    }
+  }
+
+  document.getElementById('viewerBack').addEventListener('click', function() {
+    document.getElementById('viewer').classList.remove('open');
+    document.getElementById('viewerFrame').srcdoc = '';
+  });
 
   function renderPager(totalPages) {
     var pager = document.getElementById('pager');
@@ -294,15 +393,20 @@
   }
 
   function escHtml(s) {
-    var d = document.createElement('div');
-    d.textContent = s;
-    return d.innerHTML;
+    var d = document.createElement('div'); d.textContent = s; return d.innerHTML;
+  }
+  function escAttr(s) {
+    return s.replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;');
   }
 
-  if (isLoggedIn()) {
-    showApp();
-    loadReports();
-  }
+  (async function init() {
+    var saved = localStorage.getItem(STORAGE_KEY);
+    if (saved) {
+      var ok = await tryLogin(saved);
+      if (ok) { showApp(); loadReports(); return; }
+      localStorage.removeItem(STORAGE_KEY);
+    }
+  })();
 })();
 </script>
 </body>

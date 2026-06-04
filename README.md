@@ -1,43 +1,64 @@
-# APA Weekly Reports — GitHub Pages
+# APA Weekly Reports — GitHub Pages (Encrypted)
 
-A static GitHub Pages site that lists all weekly status reports with login protection, search, and pagination.
+A static GitHub Pages site that lists all weekly status reports with **AES-256-GCM encryption**, password-protected login, search, and pagination.
+
+## How it works
+
+1. Reports are stored as plain `.html` files in `reports/` in the repo
+2. On every push, the CI workflow:
+   - Scans `reports/` and generates `reports.json`
+   - Encrypts every `.html` file and `reports.json` with AES-256-GCM (key derived from password via PBKDF2)
+   - Removes plaintext files from the deploy artifact
+   - Deploys only encrypted `.enc` files to GitHub Pages
+3. The `index.html` asks for a password, derives the same AES key in the browser, and decrypts content on the fly
+4. Even if someone finds the direct URL to a report, they only see encrypted base64 data
 
 ## Structure
 
 ```
 gh-page/
-├── index.html              # Main page (login + report list)
-├── reports.json             # Auto-generated manifest of all reports
-├── reports/                 # Drop report HTML files here
+├── index.html                        # Main page (login + decrypt + report list)
+├── reports/                          # Drop report HTML files here (plaintext in repo)
 │   ├── 2026-06-02.html
 │   ├── 2026-06-03.html
-│   └── 2026-06-04.html
-├── generate-hash.html       # Helper to generate new credential hashes
+│   └── ...
+├── scripts/
+│   └── encrypt.mjs                   # Node.js encryption script (used by CI)
+├── generate-hash.html                # Local tool to test encryption/decryption
 └── .github/workflows/
-    └── build-manifest.yml   # CI: auto-rebuilds reports.json on push
+    └── deploy.yml                    # CI: generate manifest → encrypt → deploy
 ```
 
-## How to add a new report
+## Setup
 
-1. Place the report HTML file in the `reports/` folder (e.g. `reports/2026-06-10.html`).
-2. Commit and push to `main`.
-3. The GitHub Actions workflow will automatically regenerate `reports.json`.
-4. The main page will display the new report — no manual editing needed.
+### 1. Set the encryption password as a GitHub secret
 
-## Login credentials
+```bash
+gh secret set ENCRYPT_PASSWORD -R <owner>/<repo> -b "your-password-here"
+```
 
-Default: `apa` / `apa2026`
+### 2. Add a new report
 
-### Changing the password
+1. Place the report HTML file in `reports/` (e.g. `reports/2026-06-10.html`)
+2. `git add`, `git commit`, `git push` to `main`
+3. CI encrypts and deploys automatically
 
-1. Open `generate-hash.html` in a browser.
-2. Enter the new username and password.
-3. Copy the SHA-256 hash.
-4. In `index.html`, replace the value of `CREDENTIALS_HASH` with the new hash.
-5. Commit and push.
+### 3. Change the password
 
-### Security model
+1. Update the GitHub secret `ENCRYPT_PASSWORD` with the new password
+2. Re-run the deploy workflow (or push any commit)
+3. Users will need to sign in with the new password — old localStorage sessions auto-clear on failure
 
-This is a **client-side gate** — it prevents casual access but is not true server-side authentication (impossible on static GitHub Pages). The password is stored as a SHA-256 hash in the source code. The session is stored in `sessionStorage` (cleared when the browser tab closes). This is appropriate for internal/team reports that don't contain highly sensitive data.
+## Security model
 
-For stronger security, consider hosting behind a VPN or using a private repo with GitHub Pages access controls (GitHub Enterprise).
+| Aspect | Detail |
+|---|---|
+| Algorithm | AES-256-GCM |
+| Key derivation | PBKDF2 with 100,000 iterations + SHA-256 |
+| What's encrypted | All report HTML files + the report manifest (reports.json) |
+| What's public | Only `index.html` (login page) and `generate-hash.html` |
+| Password storage | GitHub Actions secret (never in source code) |
+| Client session | Password saved in `localStorage` (persistent until logout) |
+| Direct URL access | Returns base64 encrypted blob — useless without password |
+
+This provides real data protection: even with full access to the deployed site, the content cannot be read without the password.

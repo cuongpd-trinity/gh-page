@@ -23,6 +23,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
       - name: Generate reports.json
         run: |
           echo "[" > reports.json
@@ -44,6 +49,16 @@ jobs:
           echo "" >> reports.json
           echo "]" >> reports.json
           cat reports.json
+
+      - name: Encrypt reports and manifest
+        env:
+          ENCRYPT_PASSWORD: ${{ secrets.ENCRYPT_PASSWORD }}
+        run: node scripts/encrypt.mjs
+
+      - name: Remove plaintext reports from deploy artifact
+        run: |
+          rm -f reports/*.html
+          rm -f reports.json
 
       - name: Setup Pages
         uses: actions/configure-pages@v5

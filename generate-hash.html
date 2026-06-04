@@ -2,32 +2,70 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<title>Generate Credential Hash</title>
+<title>Test Encryption Locally</title>
 <style>
-  body{font-family:system-ui;max-width:420px;margin:80px auto;padding:20px}
+  body{font-family:system-ui;max-width:480px;margin:80px auto;padding:20px}
   label{display:block;margin-top:16px;font-weight:600;font-size:14px}
-  input{width:100%;padding:8px 12px;margin-top:4px;border:1px solid #ccc;border-radius:6px;font-size:15px}
-  button{margin-top:20px;padding:10px 20px;background:#534AB7;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:15px}
+  input,textarea{width:100%;padding:8px 12px;margin-top:4px;border:1px solid #ccc;border-radius:6px;font-size:15px}
+  textarea{font-family:monospace;font-size:12px;height:100px}
+  button{margin-top:16px;padding:10px 20px;background:#534AB7;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:15px}
   .result{margin-top:20px;padding:12px;background:#f0f0f0;border-radius:6px;word-break:break-all;font-family:monospace;font-size:13px}
+  h3{margin-top:32px}
 </style>
 </head>
 <body>
-<h2>Generate Credential Hash</h2>
-<p>Enter the username and password, then copy the SHA-256 hash into <code>index.html</code>.</p>
-<label>Username</label>
-<input type="text" id="u">
+<h2>Test Encryption / Decryption</h2>
+<p>Verify the encryption password works correctly. Uses the same PBKDF2 + AES-256-GCM as the site.</p>
+
+<h3>Encrypt</h3>
 <label>Password</label>
-<input type="text" id="p">
-<button onclick="gen()">Generate Hash</button>
-<div class="result" id="out" style="display:none"></div>
+<input type="text" id="encPass">
+<label>Plaintext</label>
+<textarea id="plaintext">Hello, this is a test.</textarea>
+<button onclick="doEncrypt()">Encrypt</button>
+<div class="result" id="encOut" style="display:none"></div>
+
+<h3>Decrypt</h3>
+<label>Password</label>
+<input type="text" id="decPass">
+<label>Encrypted (base64)</label>
+<textarea id="ciphertext"></textarea>
+<button onclick="doDecrypt()">Decrypt</button>
+<div class="result" id="decOut" style="display:none"></div>
+
 <script>
-async function gen(){
-  var s = document.getElementById('u').value+':'+document.getElementById('p').value;
-  var buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(s));
-  var hex = Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
-  var el = document.getElementById('out');
-  el.style.display='block';
-  el.textContent = hex;
+var SALT = 'apa-reports-salt-2026';
+async function getKey(password, usage) {
+  var enc = new TextEncoder();
+  var km = await crypto.subtle.importKey('raw', enc.encode(password), 'PBKDF2', false, ['deriveKey']);
+  return crypto.subtle.deriveKey(
+    {name:'PBKDF2', salt:enc.encode(SALT), iterations:100000, hash:'SHA-256'},
+    km, {name:'AES-GCM',length:256}, false, [usage]
+  );
+}
+async function doEncrypt(){
+  var key = await getKey(document.getElementById('encPass').value, 'encrypt');
+  var iv = crypto.getRandomValues(new Uint8Array(12));
+  var ct = await crypto.subtle.encrypt({name:'AES-GCM',iv}, key, new TextEncoder().encode(document.getElementById('plaintext').value));
+  var combined = new Uint8Array(iv.length + ct.byteLength);
+  combined.set(iv); combined.set(new Uint8Array(ct), iv.length);
+  var b64 = btoa(String.fromCharCode(...combined));
+  var el = document.getElementById('encOut');
+  el.style.display='block'; el.textContent=b64;
+  document.getElementById('ciphertext').value=b64;
+}
+async function doDecrypt(){
+  try {
+    var key = await getKey(document.getElementById('decPass').value, 'decrypt');
+    var raw = Uint8Array.from(atob(document.getElementById('ciphertext').value), c=>c.charCodeAt(0));
+    var iv = raw.slice(0,12), ct = raw.slice(12);
+    var pt = await crypto.subtle.decrypt({name:'AES-GCM',iv}, key, ct);
+    var el = document.getElementById('decOut');
+    el.style.display='block'; el.style.color='#155724'; el.textContent=new TextDecoder().decode(pt);
+  } catch(e) {
+    var el = document.getElementById('decOut');
+    el.style.display='block'; el.style.color='#c0392b'; el.textContent='Decryption failed — wrong password?';
+  }
 }
 </script>
 </body>
