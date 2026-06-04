@@ -23,6 +23,28 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Generate reports.json
+        run: |
+          echo "[" > reports.json
+          first=true
+          for f in reports/*.html; do
+            [ -f "$f" ] || continue
+            filename=$(basename "$f")
+            title=$(grep -oP '(?<=<title>).*?(?=</title>)' "$f" | head -1)
+            [ -z "$title" ] && title="$filename"
+            date_part=$(echo "$filename" | sed 's/\.html$//')
+            if [ "$first" = true ]; then
+              first=false
+            else
+              echo "," >> reports.json
+            fi
+            printf '  {"file":"%s","title":"%s","date":"%s"}' \
+              "$filename" "$title" "$date_part" >> reports.json
+          done
+          echo "" >> reports.json
+          echo "]" >> reports.json
+          cat reports.json
+
       - name: Setup Pages
         uses: actions/configure-pages@v5
 
