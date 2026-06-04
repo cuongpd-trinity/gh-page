@@ -8,7 +8,7 @@
   :root {
     --paper:#f4f2ec; --ink:#23211c; --mut:#76726a;
     --accent:#534AB7; --line:#dcd8cc; --card:#fffefb;
-    --danger:#c0392b; --success:#27ae60;
+    --danger:#c0392b; --success:#27ae60; --pin:#e67e22;
   }
   *{box-sizing:border-box;margin:0;padding:0}
   body{
@@ -20,8 +20,7 @@
   }
 
   .login-overlay{
-    position:fixed;inset:0;z-index:1000;
-    background:var(--paper);
+    position:fixed;inset:0;z-index:1000;background:var(--paper);
     display:flex;align-items:center;justify-content:center;
     background-image:radial-gradient(circle at 30% 20%,rgba(83,74,183,.08),transparent 50%);
   }
@@ -38,15 +37,13 @@
     letter-spacing:.04em;color:var(--mut);margin-bottom:6px;margin-top:18px}
   .login-box input{
     width:100%;padding:10px 14px;border:1px solid var(--line);
-    border-radius:8px;font-size:15px;background:var(--paper);
-    transition:border-color .2s;
+    border-radius:8px;font-size:15px;background:var(--paper);transition:border-color .2s;
   }
   .login-box input:focus{outline:none;border-color:var(--accent)}
   .login-box button{
     margin-top:28px;width:100%;padding:12px;border:none;
     border-radius:8px;background:var(--accent);color:#fff;
-    font-size:15px;font-weight:600;cursor:pointer;
-    transition:opacity .2s;
+    font-size:15px;font-weight:600;cursor:pointer;transition:opacity .2s;
   }
   .login-box button:hover{opacity:.88}
   .login-error{color:var(--danger);font-size:13px;margin-top:12px;display:none}
@@ -55,8 +52,7 @@
   .app.visible{display:block}
   .wrap{max-width:760px;margin:0 auto;padding:48px 24px 90px}
   .top-bar{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
-  .kicker{font-size:17px;letter-spacing:.28em;text-transform:uppercase;
-    color:var(--accent);font-weight:700}
+  .kicker{font-size:17px;letter-spacing:.28em;text-transform:uppercase;color:var(--accent);font-weight:700}
   .logout-btn{
     background:none;border:1px solid var(--line);border-radius:6px;
     padding:6px 14px;font-size:13px;color:var(--mut);cursor:pointer;
@@ -67,38 +63,63 @@
     font-size:clamp(30px,5vw,44px);line-height:1.1;letter-spacing:-.015em}
   h1 em{font-style:italic;color:var(--accent)}
 
-  .search-wrap{margin-top:24px;position:relative}
+  .toolbar{display:flex;gap:12px;margin-top:24px;flex-wrap:wrap;align-items:stretch}
+  .search-wrap{flex:1;min-width:200px;position:relative}
   .search-wrap input{
-    width:100%;padding:12px 16px 12px 42px;border:1px solid var(--line);
-    border-radius:10px;font-size:15px;background:var(--card);
-    transition:border-color .2s;
+    width:100%;height:100%;padding:10px 14px 10px 38px;border:1px solid var(--line);
+    border-radius:10px;font-size:15px;background:var(--card);transition:border-color .2s;
   }
   .search-wrap input:focus{outline:none;border-color:var(--accent)}
-  .search-wrap .icon{position:absolute;left:14px;top:50%;transform:translateY(-50%);
-    color:var(--mut);font-size:16px;pointer-events:none}
+  .search-wrap .icon{position:absolute;left:12px;top:50%;transform:translateY(-50%);
+    color:var(--mut);font-size:15px;pointer-events:none}
+  .sort-select{
+    padding:10px 12px;border:1px solid var(--line);border-radius:10px;
+    font-size:13px;background:var(--card);color:var(--ink);cursor:pointer;
+    appearance:auto;min-width:160px;
+  }
+  .sort-select:focus{outline:none;border-color:var(--accent)}
+  .filter-bar{display:flex;gap:8px;margin-top:10px}
+  .filter-btn{
+    padding:6px 14px;border:1px solid var(--line);border-radius:20px;
+    font-size:12px;font-weight:600;background:var(--card);color:var(--mut);
+    cursor:pointer;transition:all .18s;letter-spacing:.03em;
+  }
+  .filter-btn:hover{border-color:var(--accent);color:var(--accent)}
+  .filter-btn.active{background:var(--accent);color:#fff;border-color:var(--accent)}
   .search-count{font-size:13px;color:var(--mut);margin-top:8px;letter-spacing:.03em}
 
-  .rule{height:2px;background:var(--ink);margin:20px 0 6px;opacity:.85}
+  .rule{height:2px;background:var(--ink);margin:16px 0 6px;opacity:.85}
 
   .list{margin-top:16px;border-top:1px solid var(--line)}
   .entry{
-    display:flex;align-items:baseline;gap:22px;
-    padding:22px 12px;border-bottom:1px solid var(--line);
+    display:flex;align-items:center;gap:12px;
+    padding:18px 12px;border-bottom:1px solid var(--line);
     text-decoration:none;color:inherit;position:relative;
     transition:background .18s ease,padding-left .18s ease;
-    cursor:pointer;
   }
-  .entry:hover{background:var(--card);padding-left:22px}
-  .entry .body{flex:1}
+  .entry:hover{background:var(--card);padding-left:18px}
+  .pin-btn{
+    background:none;border:none;font-size:18px;cursor:pointer;
+    padding:4px;line-height:1;transition:transform .18s;flex-shrink:0;
+    opacity:.4;
+  }
+  .pin-btn:hover{transform:scale(1.2)}
+  .pin-btn.pinned{opacity:1}
+  .entry-body{flex:1;cursor:pointer}
   .entry .date{font-size:13px;color:var(--mut);letter-spacing:.03em}
   .entry .title{font-family:Georgia,serif;font-size:20px;margin-top:3px;letter-spacing:-.01em}
-  .entry .go{align-self:center;color:var(--mut);font-size:22px;transition:transform .18s,color .18s}
+  .entry .go{color:var(--mut);font-size:20px;transition:transform .18s,color .18s;flex-shrink:0}
   .entry:hover .go{transform:translateX(5px);color:var(--accent)}
   .entry.latest .title::after{
     content:"Latest";font-family:-apple-system,sans-serif;font-size:10px;
     font-weight:700;letter-spacing:.06em;text-transform:uppercase;
     background:var(--accent);color:#fff;padding:2px 8px;border-radius:20px;
     margin-left:10px;vertical-align:middle;
+  }
+  .pinned-badge{
+    display:inline-block;font-size:10px;font-weight:700;letter-spacing:.06em;
+    text-transform:uppercase;background:var(--pin);color:#fff;
+    padding:2px 8px;border-radius:20px;margin-left:8px;vertical-align:middle;
   }
 
   .pager{display:flex;justify-content:center;align-items:center;gap:8px;margin-top:32px}
@@ -114,8 +135,7 @@
   .empty-msg{text-align:center;color:var(--mut);padding:48px 0;font-size:15px}
 
   .viewer-overlay{
-    position:fixed;inset:0;z-index:2000;background:var(--paper);display:none;
-    flex-direction:column;
+    position:fixed;inset:0;z-index:2000;background:var(--paper);display:none;flex-direction:column;
   }
   .viewer-overlay.open{display:flex}
   .viewer-bar{
@@ -124,17 +144,17 @@
   }
   .viewer-bar .back-btn{
     background:none;border:1px solid var(--line);border-radius:6px;
-    padding:6px 14px;font-size:13px;color:var(--accent);cursor:pointer;
-    font-weight:600;
+    padding:6px 14px;font-size:13px;color:var(--accent);cursor:pointer;font-weight:600;
   }
   .viewer-bar .back-btn:hover{background:var(--paper)}
   .viewer-bar .viewer-title{font-family:Georgia,serif;font-size:16px;flex:1}
   .viewer-frame{flex:1;border:none;width:100%}
-  .viewer-loading{text-align:center;padding:48px;color:var(--mut);font-size:15px}
 
   @media(max-width:500px){
     .login-box{padding:36px 24px}
     .wrap{padding:32px 16px 60px}
+    .toolbar{flex-direction:column}
+    .sort-select{width:100%}
   }
 </style>
 </head>
@@ -163,9 +183,21 @@
     </div>
     <h1>Weekly <em>Reports</em></h1>
 
-    <div class="search-wrap">
-      <span class="icon">&#128269;</span>
-      <input type="text" id="searchInput" placeholder="Search reports by title or date…">
+    <div class="toolbar">
+      <div class="search-wrap">
+        <span class="icon">&#128269;</span>
+        <input type="text" id="searchInput" placeholder="Search reports…">
+      </div>
+      <select class="sort-select" id="sortSelect">
+        <option value="date-desc">Date: Newest first</option>
+        <option value="date-asc">Date: Oldest first</option>
+        <option value="title-asc">Title: A → Z</option>
+        <option value="title-desc">Title: Z → A</option>
+      </select>
+    </div>
+    <div class="filter-bar">
+      <button class="filter-btn active" data-filter="all">All</button>
+      <button class="filter-btn" data-filter="pinned">&#9733; Pinned</button>
     </div>
     <div class="search-count" id="searchCount"></div>
 
@@ -187,6 +219,7 @@
 (function(){
   var SALT = 'apa-reports-salt-2026';
   var STORAGE_KEY = 'apa_enc_key';
+  var PINS_KEY = 'apa_pinned';
   var PER_PAGE = 10;
 
   var derivedKey = null;
@@ -194,18 +227,19 @@
   var reports = [];
   var filtered = [];
   var currentPage = 1;
+  var currentSort = 'date-desc';
+  var currentFilter = 'all';
+  var pinnedSet = new Set(JSON.parse(localStorage.getItem(PINS_KEY) || '[]'));
+
+  function savePins() {
+    localStorage.setItem(PINS_KEY, JSON.stringify(Array.from(pinnedSet)));
+  }
 
   function b64ToBytes(b64) {
     var bin = atob(b64);
     var arr = new Uint8Array(bin.length);
     for (var i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
     return arr;
-  }
-
-  function bytesToB64(bytes) {
-    var bin = '';
-    for (var i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]);
-    return btoa(bin);
   }
 
   async function deriveKey(password) {
@@ -226,11 +260,7 @@
     var raw = b64ToBytes(encB64);
     var iv = raw.slice(0, 12);
     var ciphertext = raw.slice(12);
-    var decrypted = await crypto.subtle.decrypt(
-      { name: 'AES-GCM', iv: iv },
-      key,
-      ciphertext
-    );
+    var decrypted = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: iv }, key, ciphertext);
     return new TextDecoder().decode(decrypted);
   }
 
@@ -289,8 +319,7 @@
       var encB64 = await resp.text();
       var json = await decryptData(encB64, derivedKey);
       reports = JSON.parse(json);
-      reports.sort(function(a, b) { return b.file.localeCompare(a.file); });
-      applyFilter();
+      applyFilterAndSort();
     } catch (e) {
       document.getElementById('reportList').innerHTML =
         '<div class="empty-msg">Could not decrypt reports. Try signing out and back in.</div>';
@@ -299,22 +328,59 @@
 
   document.getElementById('searchInput').addEventListener('input', function() {
     currentPage = 1;
-    applyFilter();
+    applyFilterAndSort();
   });
 
-  function applyFilter() {
+  document.getElementById('sortSelect').addEventListener('change', function() {
+    currentSort = this.value;
+    currentPage = 1;
+    applyFilterAndSort();
+  });
+
+  document.querySelectorAll('.filter-btn').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      document.querySelectorAll('.filter-btn').forEach(function(b) { b.classList.remove('active'); });
+      this.classList.add('active');
+      currentFilter = this.getAttribute('data-filter');
+      currentPage = 1;
+      applyFilterAndSort();
+    });
+  });
+
+  function applyFilterAndSort() {
     var q = document.getElementById('searchInput').value.trim().toLowerCase();
-    if (!q) {
-      filtered = reports.slice();
-    } else {
-      filtered = reports.filter(function(r) {
+    var list = reports.slice();
+
+    if (currentFilter === 'pinned') {
+      list = list.filter(function(r) { return pinnedSet.has(r.file); });
+    }
+
+    if (q) {
+      list = list.filter(function(r) {
         return r.title.toLowerCase().indexOf(q) !== -1 ||
                r.file.toLowerCase().indexOf(q) !== -1;
       });
     }
-    document.getElementById('searchCount').textContent =
-      filtered.length + ' report' + (filtered.length !== 1 ? 's' : '') +
-      (q ? ' matching "' + q + '"' : ' total');
+
+    list.sort(function(a, b) {
+      var aPinned = pinnedSet.has(a.file) ? 0 : 1;
+      var bPinned = pinnedSet.has(b.file) ? 0 : 1;
+      if (aPinned !== bPinned) return aPinned - bPinned;
+
+      switch (currentSort) {
+        case 'date-asc':  return a.file.localeCompare(b.file);
+        case 'title-asc': return a.title.localeCompare(b.title);
+        case 'title-desc':return b.title.localeCompare(a.title);
+        default:          return b.file.localeCompare(a.file);
+      }
+    });
+
+    filtered = list;
+    var label = filtered.length + ' report' + (filtered.length !== 1 ? 's' : '');
+    if (currentFilter === 'pinned') label += ' pinned';
+    if (q) label += ' matching "' + q + '"';
+    else if (currentFilter === 'all') label += ' total';
+    document.getElementById('searchCount').textContent = label;
     renderPage();
   }
 
@@ -326,24 +392,46 @@
     var page = filtered.slice(start, start + PER_PAGE);
 
     if (page.length === 0) {
-      list.innerHTML = '<div class="empty-msg">No reports found.</div>';
+      list.innerHTML = '<div class="empty-msg">' +
+        (currentFilter === 'pinned' ? 'No pinned reports yet. Click &#9734; to pin a report.' : 'No reports found.') +
+        '</div>';
     } else {
       list.innerHTML = page.map(function(r, i) {
-        var isLatest = (start + i === 0) && currentPage === 1 &&
-          !document.getElementById('searchInput').value.trim();
-        return '<div class="entry' + (isLatest ? ' latest' : '') + '" data-file="' +
-          escAttr(r.file) + '" data-title="' + escAttr(r.title) + '">' +
-          '<span class="body">' +
-            '<span class="date">' + escHtml(r.date || r.file.replace('.html','')) + '</span>' +
+        var isPinned = pinnedSet.has(r.file);
+        var isNewest = (start + i === 0) && currentPage === 1 &&
+          currentSort === 'date-desc' && currentFilter === 'all' &&
+          !document.getElementById('searchInput').value.trim() && !isPinned;
+        return '<div class="entry' + (isNewest ? ' latest' : '') + '" data-file="' + escAttr(r.file) + '">' +
+          '<button class="pin-btn' + (isPinned ? ' pinned' : '') + '" data-pin="' + escAttr(r.file) + '" title="' + (isPinned ? 'Unpin' : 'Pin') + '">' +
+            (isPinned ? '&#9733;' : '&#9734;') +
+          '</button>' +
+          '<div class="entry-body" data-file="' + escAttr(r.file) + '" data-title="' + escAttr(r.title) + '">' +
+            '<span class="date">' + escHtml(r.date || r.file.replace('.html','')) +
+              (isPinned ? '<span class="pinned-badge">Pinned</span>' : '') +
+            '</span>' +
             '<div class="title">' + escHtml(r.title) + '</div>' +
-          '</span>' +
+          '</div>' +
           '<span class="go">&rarr;</span>' +
         '</div>';
       }).join('');
 
-      list.querySelectorAll('.entry').forEach(function(el) {
+      list.querySelectorAll('.entry-body').forEach(function(el) {
         el.addEventListener('click', function() {
           openReport(this.getAttribute('data-file'), this.getAttribute('data-title'));
+        });
+      });
+
+      list.querySelectorAll('.pin-btn').forEach(function(btn) {
+        btn.addEventListener('click', function(e) {
+          e.stopPropagation();
+          var file = this.getAttribute('data-pin');
+          if (pinnedSet.has(file)) {
+            pinnedSet.delete(file);
+          } else {
+            pinnedSet.add(file);
+          }
+          savePins();
+          applyFilterAndSort();
         });
       });
     }
@@ -356,7 +444,6 @@
     document.getElementById('viewerTitle').textContent = title;
     viewer.classList.add('open');
     frame.srcdoc = '<p style="text-align:center;padding:48px;color:#76726a;font-family:system-ui">Decrypting…</p>';
-
     try {
       var encFile = file.replace('.html', '.html.enc');
       var resp = await fetch('reports/' + encFile + '?_=' + Date.now());
@@ -377,19 +464,28 @@
     var pager = document.getElementById('pager');
     if (totalPages <= 1) { pager.innerHTML = ''; return; }
     var html = '';
-    html += '<button' + (currentPage <= 1 ? ' disabled' : '') +
-      ' data-page="' + (currentPage - 1) + '">&laquo;</button>';
-    for (var p = 1; p <= totalPages; p++) {
-      html += '<button class="' + (p === currentPage ? 'active' : '') +
-        '" data-page="' + p + '">' + p + '</button>';
+    html += '<button' + (currentPage <= 1 ? ' disabled' : '') + ' data-page="' + (currentPage - 1) + '">&laquo;</button>';
+    var maxVisible = 5;
+    var startP = Math.max(1, currentPage - Math.floor(maxVisible / 2));
+    var endP = Math.min(totalPages, startP + maxVisible - 1);
+    if (endP - startP < maxVisible - 1) startP = Math.max(1, endP - maxVisible + 1);
+    if (startP > 1) {
+      html += '<button data-page="1">1</button>';
+      if (startP > 2) html += '<button disabled>&hellip;</button>';
     }
-    html += '<button' + (currentPage >= totalPages ? ' disabled' : '') +
-      ' data-page="' + (currentPage + 1) + '">&raquo;</button>';
+    for (var p = startP; p <= endP; p++) {
+      html += '<button class="' + (p === currentPage ? 'active' : '') + '" data-page="' + p + '">' + p + '</button>';
+    }
+    if (endP < totalPages) {
+      if (endP < totalPages - 1) html += '<button disabled>&hellip;</button>';
+      html += '<button data-page="' + totalPages + '">' + totalPages + '</button>';
+    }
+    html += '<button' + (currentPage >= totalPages ? ' disabled' : '') + ' data-page="' + (currentPage + 1) + '">&raquo;</button>';
     pager.innerHTML = html;
-    pager.querySelectorAll('button').forEach(function(btn) {
+    pager.querySelectorAll('button:not(:disabled)').forEach(function(btn) {
       btn.addEventListener('click', function() {
         var pg = parseInt(this.getAttribute('data-page'));
-        if (pg >= 1 && pg <= totalPages) { currentPage = pg; renderPage(); }
+        if (pg >= 1 && pg <= totalPages) { currentPage = pg; renderPage(); window.scrollTo(0,0); }
       });
     });
   }
